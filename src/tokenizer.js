@@ -28,17 +28,18 @@ function tokenize(input) {
     }
     if (ch === "'") {
       let value = '';
+      let closed = false;
       i += 1;
       while (i < input.length) {
         if (input[i] === "'") {
           if (input[i + 1] === "'") { value += "'"; i += 2; }
-          else { i += 1; break; }
+          else { i += 1; closed = true; break; }
         } else {
           value += input[i];
           i += 1;
         }
       }
-      if (i > input.length) throw new MiniSqlError('unterminated string literal');
+      if (!closed) throw new MiniSqlError('unterminated string literal');
       push('string', value);
       continue;
     }

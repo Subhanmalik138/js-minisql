@@ -6,6 +6,7 @@ const readline = require('readline');
 const { Database } = require('./database');
 const { parse } = require('./parser');
 const { execute } = require('./engine');
+const { saveDatabase, loadDatabase } = require('./persistence');
 const { MiniSqlError } = require('./errors');
 
 const HELP = `MiniSQL — a tiny SQL database engine. Statements end with ;
@@ -82,16 +83,6 @@ function statementComplete(buffer) {
   return !inString && last === ';';
 }
 
-function saveDatabase(db, path) {
-  fs.writeFileSync(path, JSON.stringify(db.toJSON(), null, 2));
-  console.log(`Saved to ${path}`);
-}
-
-function loadDatabase(path) {
-  const data = JSON.parse(fs.readFileSync(path, 'utf8'));
-  return Database.fromJSON(data);
-}
-
 function runStatement(db, sql) {
   const result = execute(db, parse(sql));
   renderResult(result);
@@ -116,7 +107,7 @@ function main() {
       db = loadDatabase(dbPath);
       console.log(`Loaded ${db.tableNames().length} table(s) from ${dbPath}`);
     } catch (err) {
-      console.error(`Error: could not load ${dbPath}: ${err.message}`);
+      console.error(`Error: ${err.message}`);
       process.exit(1);
     }
   }
@@ -131,7 +122,7 @@ function main() {
         failed = true;
       }
     }
-    if (dbPath) saveDatabase(db, dbPath);
+    if (dbPath) { saveDatabase(db, dbPath); console.log(`Saved to ${dbPath}`); }
     process.exit(failed ? 1 : 0);
   }
 
@@ -141,7 +132,7 @@ function main() {
 
   const finish = () => {
     if (dbPath) {
-      try { saveDatabase(db, dbPath); } catch (err) { console.error(`Error: ${err.message}`); }
+      try { saveDatabase(db, dbPath); console.log(`Saved to ${dbPath}`); } catch (err) { console.error(`Error: ${err.message}`); }
     }
     rl.close();
   };
@@ -172,7 +163,7 @@ function main() {
         case '.save': {
           const target = rest[0] || dbPath;
           if (!target) { console.log('Usage: .save <file>'); break; }
-          try { saveDatabase(db, target); if (!dbPath) dbPath = target; } catch (err) { console.log(`Error: ${err.message}`); }
+          try { saveDatabase(db, target); console.log(`Saved to ${target}`); if (!dbPath) dbPath = target; } catch (err) { console.log(`Error: ${err.message}`); }
           break;
         }
         case '.load': {
